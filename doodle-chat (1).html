@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Doodle Chat</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg: #1a1a1a;
+            --surface: #252525;
+            --surface-hover: #2f2f2f;
+            --border: #3a3a3a;
+            --text: #e8e8e8;
+            --text-muted: #888;
+            --accent: #ff6b4a;
+            --accent-glow: rgba(255, 107, 74, 0.3);
+        }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            gap: 16px;
+        }
+
+        header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        h1 {
+            font-family: 'Caveat', cursive;
+            font-size: 2rem;
+            font-weight: 500;
+            color: var(--accent);
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            width: 100%;
+            max-width: 520px;
+        }
+
+        .toolbar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 14px;
+            background: var(--surface);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            flex-wrap: wrap;
+        }
+
+        .tool-group {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .divider {
+            width: 1px;
+            height: 24px;
+            background: var(--border);
+            margin: 0 6px;
+        }
+
+        .color-btn {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            border: 2px solid transparent;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            position: relative;
+        }
+
+        .color-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .color-btn.active {
+            border-color: var(--text);
+            box-shadow: 0 0 0 2px var(--bg);
+        }
+
+        .color-btn.black { background: #1a1a1a; border: 2px solid #444; }
+        .color-btn.white { background: #ffffff; }
+        .color-btn.red { background: #e53935; }
+        .color-btn.orange { background: #ff9800; }
+        .color-btn.yellow { background: #ffeb3b; }
+        .color-btn.green { background: #4caf50; }
+        .color-btn.blue { background: #2196f3; }
+        .color-btn.purple { background: #9c27b0; }
+
+        .size-btn, .tool-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            color: var(--text);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s ease;
+        }
+
+        .size-btn:hover, .tool-btn:hover {
+            background: var(--surface-hover);
+        }
+
+        .size-btn.active, .tool-btn.active {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: white;
+        }
+
+        .size-btn svg, .tool-btn svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .canvas-wrapper {
+            position: relative;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+            border: 1px solid var(--border);
+        }
+
+        canvas {
+            display: block;
+            background: white;
+            cursor: crosshair;
+            touch-action: none;
+        }
+
+        .actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 14px 20px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            color: var(--text);
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.95rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn:hover {
+            background: var(--surface-hover);
+            transform: translateY(-1px);
+        }
+
+        .btn.primary {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: white;
+        }
+
+        .btn.primary:hover {
+            background: #ff8266;
+            box-shadow: 0 4px 16px var(--accent-glow);
+        }
+
+        .btn svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .preview-section {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .preview-label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .preview-wrapper {
+            background: var(--surface);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            padding: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 80px;
+        }
+
+        .preview-wrapper img {
+            max-width: 120px;
+            max-height: 80px;
+            border-radius: 6px;
+            cursor: grab;
+            transition: transform 0.15s ease;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+
+        .preview-wrapper img:hover {
+            transform: scale(1.05);
+        }
+
+        .preview-wrapper img:active {
+            cursor: grabbing;
+        }
+
+        .hint {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-align: center;
+            font-style: italic;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: var(--surface);
+            border: 1px solid var(--accent);
+            color: var(--text);
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            opacity: 0;
+            transition: all 0.3s ease;
+            pointer-events: none;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        @media (max-width: 540px) {
+            body {
+                padding: 12px;
+            }
+
+            .toolbar {
+                padding: 8px 10px;
+            }
+
+            .color-btn {
+                width: 24px;
+                height: 24px;
+            }
+
+            .size-btn, .tool-btn {
+                width: 32px;
+                height: 32px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>✏️ Doodle Chat</h1>
+    </header>
+
+    <div class="container">
+        <div class="toolbar">
+            <div class="tool-group">
+                <button class="color-btn black active" data-color="#1a1a1a" title="Noir"></button>
+                <button class="color-btn white" data-color="#ffffff" title="Blanc"></button>
+                <button class="color-btn red" data-color="#e53935" title="Rouge"></button>
+                <button class="color-btn orange" data-color="#ff9800" title="Orange"></button>
+                <button class="color-btn yellow" data-color="#ffeb3b" title="Jaune"></button>
+                <button class="color-btn green" data-color="#4caf50" title="Vert"></button>
+                <button class="color-btn blue" data-color="#2196f3" title="Bleu"></button>
+                <button class="color-btn purple" data-color="#9c27b0" title="Violet"></button>
+            </div>
+
+            <div class="divider"></div>
+
+            <div class="tool-group">
+                <button class="size-btn" data-size="3" title="Fin">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="2"/>
+                    </svg>
+                </button>
+                <button class="size-btn active" data-size="6" title="Moyen">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="4"/>
+                    </svg>
+                </button>
+                <button class="size-btn" data-size="12" title="Épais">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="6"/>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="divider"></div>
+
+            <div class="tool-group">
+                <button class="tool-btn" id="eraserBtn" title="Gomme">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M20 20H7L3 16c-.6-.6-.6-1.5 0-2.1l10-10c.6-.6 1.5-.6 2.1 0l6 6c.6.6.6 1.5 0 2.1L15 18"/>
+                        <path d="M6 11l4 4"/>
+                    </svg>
+                </button>
+                <button class="tool-btn" id="clearBtn" title="Effacer tout">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 6h18M8 6V4a1 1 0 011-1h6a1 1 0 011 1v2M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <div class="canvas-wrapper">
+            <canvas id="canvas" width="500" height="350"></canvas>
+        </div>
+
+        <div class="actions">
+            <button class="btn" id="clearCanvasBtn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M3 6h18M8 6V4a1 1 0 011-1h6a1 1 0 011 1v2M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6"/>
+                </svg>
+                Effacer
+            </button>
+            <button class="btn primary" id="copyBtn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="9" y="9" width="13" height="13" rx="2"/>
+                    <path d="M5 15V5a2 2 0 012-2h10"/>
+                </svg>
+                Copier
+            </button>
+        </div>
+
+        <div class="preview-section">
+            <span class="preview-label">↓ Glisse-dépose dans le chat</span>
+            <div class="preview-wrapper">
+                <img id="preview" src="" alt="Aperçu" draggable="true" style="display: none;">
+            </div>
+            <p class="hint">L'image se met à jour automatiquement quand tu dessines</p>
+        </div>
+    </div>
+
+    <div class="toast" id="toast">Copié ! 📋</div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const preview = document.getElementById('preview');
+        const toast = document.getElementById('toast');
+
+        let isDrawing = false;
+        let lastX = 0;
+        let lastY = 0;
+        let currentColor = '#1a1a1a';
+        let currentSize = 6;
+        let isEraser = false;
+
+        // Init canvas
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+
+        // Drawing functions
+        function startDrawing(e) {
+            isDrawing = true;
+            [lastX, lastY] = getPos(e);
+        }
+
+        function draw(e) {
+            if (!isDrawing) return;
+            e.preventDefault();
+
+            const [x, y] = getPos(e);
+
+            ctx.beginPath();
+            ctx.moveTo(lastX, lastY);
+            ctx.lineTo(x, y);
+            ctx.strokeStyle = isEraser ? 'white' : currentColor;
+            ctx.lineWidth = isEraser ? currentSize * 3 : currentSize;
+            ctx.stroke();
+
+            [lastX, lastY] = [x, y];
+        }
+
+        function stopDrawing() {
+            if (isDrawing) {
+                isDrawing = false;
+                updatePreview();
+            }
+        }
+
+        function getPos(e) {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+
+            if (e.touches) {
+                return [
+                    (e.touches[0].clientX - rect.left) * scaleX,
+                    (e.touches[0].clientY - rect.top) * scaleY
+                ];
+            }
+            return [
+                (e.clientX - rect.left) * scaleX,
+                (e.clientY - rect.top) * scaleY
+            ];
+        }
+
+        // Event listeners
+        canvas.addEventListener('mousedown', startDrawing);
+        canvas.addEventListener('mousemove', draw);
+        canvas.addEventListener('mouseup', stopDrawing);
+        canvas.addEventListener('mouseout', stopDrawing);
+
+        canvas.addEventListener('touchstart', startDrawing);
+        canvas.addEventListener('touchmove', draw);
+        canvas.addEventListener('touchend', stopDrawing);
+
+        // Color buttons
+        document.querySelectorAll('.color-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentColor = btn.dataset.color;
+                isEraser = false;
+                document.getElementById('eraserBtn').classList.remove('active');
+            });
+        });
+
+        // Size buttons
+        document.querySelectorAll('.size-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.size-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentSize = parseInt(btn.dataset.size);
+            });
+        });
+
+        // Eraser
+        document.getElementById('eraserBtn').addEventListener('click', () => {
+            isEraser = !isEraser;
+            document.getElementById('eraserBtn').classList.toggle('active', isEraser);
+            if (isEraser) {
+                document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active'));
+            }
+        });
+
+        // Clear buttons
+        function clearCanvas() {
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            updatePreview();
+        }
+
+        document.getElementById('clearBtn').addEventListener('click', clearCanvas);
+        document.getElementById('clearCanvasBtn').addEventListener('click', clearCanvas);
+
+        // Update preview
+        function updatePreview() {
+            const dataUrl = canvas.toDataURL('image/png');
+            preview.src = dataUrl;
+            preview.style.display = 'block';
+        }
+
+        // Copy to clipboard
+        document.getElementById('copyBtn').addEventListener('click', async () => {
+            try {
+                const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+                await navigator.clipboard.write([
+                    new ClipboardItem({ 'image/png': blob })
+                ]);
+                showToast('Copié ! 📋');
+            } catch (err) {
+                // Fallback: download
+                const link = document.createElement('a');
+                link.download = 'doodle.png';
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+                showToast('Téléchargé ! 📥');
+            }
+        });
+
+        // Drag and drop from preview
+        preview.addEventListener('dragstart', (e) => {
+            canvas.toBlob(blob => {
+                const file = new File([blob], 'doodle.png', { type: 'image/png' });
+                e.dataTransfer.setData('DownloadURL', `image/png:doodle.png:${canvas.toDataURL('image/png')}`);
+            });
+        });
+
+        // Toast
+        function showToast(message) {
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 2000);
+        }
+
+        // Init preview
+        updatePreview();
+    </script>
+</body>
+</html>
