@@ -359,6 +359,13 @@
     <div class="app">
         <div class="header">
             <span class="header-title">Doodle Chat</span>
+            <button class="tool-btn" id="detachBtn" title="Détacher dans une popup">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                    <polyline points="15 3 21 3 21 9"/>
+                    <line x1="10" y1="14" x2="21" y2="3"/>
+                </svg>
+            </button>
         </div>
 
         <div class="toolbar">
@@ -951,6 +958,33 @@
             toast.classList.add('show');
             setTimeout(() => toast.classList.remove('show'), 2000);
         }
+
+        // Detach button - ouvrir dans une popup
+        const detachBtn = document.getElementById('detachBtn');
+        
+        // Cacher le bouton si on est déjà dans une popup
+        if (window.opener || window.name === 'DoodleChatPopup') {
+            detachBtn.style.display = 'none';
+        }
+        
+        detachBtn.addEventListener('click', () => {
+            const width = 460;
+            const height = 750;
+            const left = window.screen.width - width - 20;
+            const top = 20;
+            
+            const popup = window.open(
+                window.location.href,
+                'DoodleChatPopup',
+                `width=${width},height=${height},left=${left},top=${top},popup=yes,resizable=yes`
+            );
+            
+            if (popup) {
+                showToast('Popup ouverte ! Tu peux fermer cet onglet.');
+            } else {
+                showToast('Popup bloquée — autorise les popups');
+            }
+        });
 
         // Init preview
         updatePreview();
