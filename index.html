@@ -471,6 +471,7 @@
 
         <div class="actions">
             <button class="btn btn-secondary" id="downloadBtn">Télécharger</button>
+            <button class="btn btn-secondary" id="shareBtn" style="display: none;">Partager</button>
             <button class="btn btn-primary" id="copyBtn">Copier</button>
         </div>
     </div>
@@ -907,6 +908,28 @@
             link.href = canvas.toDataURL('image/png');
             link.click();
             showToast('Téléchargé ! 📥');
+        });
+
+        // Share (Web Share API pour mobile)
+        const shareBtn = document.getElementById('shareBtn');
+        if (navigator.canShare && navigator.canShare({ files: [new File([], 'test.png', { type: 'image/png' })] })) {
+            shareBtn.style.display = 'block';
+        }
+        
+        shareBtn.addEventListener('click', async () => {
+            try {
+                const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+                const file = new File([blob], 'doodle.png', { type: 'image/png' });
+                
+                await navigator.share({
+                    files: [file],
+                    title: 'Doodle'
+                });
+            } catch (err) {
+                if (err.name !== 'AbortError') {
+                    showToast('Partage annulé');
+                }
+            }
         });
 
         // Copy
