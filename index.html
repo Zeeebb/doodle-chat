@@ -181,8 +181,8 @@
 
         .size-1 { width: 4px; height: 4px; }
         .size-2 { width: 8px; height: 8px; }
-        .size-3 { width: 12px; height: 12px; }
-        .size-4 { width: 16px; height: 16px; }
+        .size-3 { width: 14px; height: 14px; }
+        .size-4 { width: 22px; height: 22px; }
 
         .opacity-group {
             display: flex;
@@ -435,9 +435,9 @@
         <div class="toolbar">
             <div class="size-group">
                 <div class="size-dot size-1" data-size="1"></div>
-                <div class="size-dot size-2 active" data-size="2"></div>
-                <div class="size-dot size-3" data-size="4"></div>
-                <div class="size-dot size-4" data-size="6"></div>
+                <div class="size-dot size-2 active" data-size="3"></div>
+                <div class="size-dot size-3" data-size="8"></div>
+                <div class="size-dot size-4" data-size="16"></div>
             </div>
 
             <div class="divider"></div>
@@ -502,7 +502,7 @@
         let lastX = 0;
         let lastY = 0;
         let currentColor = '#000000';
-        let currentSize = 2;
+        let currentSize = 3;
         let currentOpacity = 1;
         let brushShape = 'square';
         let isEraser = false;
@@ -710,14 +710,12 @@
             context.fillStyle = color;
 
             while (true) {
-                const px = x0 - Math.floor(size / 2);
-                const py = y0 - Math.floor(size / 2);
-
                 if (brushShape === 'round') {
-                    context.beginPath();
-                    context.arc(x0, y0, size / 2, 0, Math.PI * 2);
-                    context.fill();
+                    // Cercle pixelisé (sans anti-aliasing)
+                    drawPixelCircle(context, x0, y0, Math.floor(size / 2));
                 } else {
+                    const px = x0 - Math.floor(size / 2);
+                    const py = y0 - Math.floor(size / 2);
                     context.fillRect(px, py, size, size);
                 }
 
@@ -725,6 +723,23 @@
                 const e2 = 2 * err;
                 if (e2 > -dy) { err -= dy; x0 += sx; }
                 if (e2 < dx) { err += dx; y0 += sy; }
+            }
+        }
+        
+        // Cercle pixelisé avec algorithme de Bresenham (pas d'anti-aliasing)
+        function drawPixelCircle(context, cx, cy, radius) {
+            if (radius <= 0) {
+                context.fillRect(cx, cy, 1, 1);
+                return;
+            }
+            
+            // Remplir un cercle pixel par pixel
+            for (let y = -radius; y <= radius; y++) {
+                for (let x = -radius; x <= radius; x++) {
+                    if (x * x + y * y <= radius * radius) {
+                        context.fillRect(cx + x, cy + y, 1, 1);
+                    }
+                }
             }
         }
 
