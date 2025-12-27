@@ -239,56 +239,19 @@
             outline-offset: 2px;
         }
 
-        .shape-group {
-            display: flex;
-            align-items: center;
-            gap: 2px;
-            border: 1px solid #555;
-            border-radius: 4px;
-            padding: 2px;
-        }
-
-        .shape-btn {
-            width: 24px;
-            height: 24px;
-            border: none;
-            background: transparent;
-            color: #fff;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 2px;
-        }
-
-        .shape-btn:hover {
-            background: #505050;
-        }
-
-        .shape-btn.active {
-            background: #505050;
-        }
-
-        .shape-btn svg {
-            width: 12px;
-            height: 12px;
-        }
-
         .canvas-area {
-            background: #fff;
-            margin: 12px;
-            border-radius: 2px;
-            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            padding: 12px;
         }
 
         canvas {
             display: block;
-            width: 100%;
-            height: auto;
+            width: 200px;
+            height: 200px;
             cursor: crosshair;
             touch-action: none;
-            image-rendering: pixelated;
-            image-rendering: crisp-edges;
+            border-radius: 2px;
         }
 
         .actions {
@@ -487,7 +450,7 @@
                 <div class="size-dot size-1" data-size="1"></div>
                 <div class="size-dot size-2 active" data-size="3"></div>
                 <div class="size-dot size-3" data-size="8"></div>
-                <div class="size-dot size-4" data-size="16"></div>
+                <div class="size-dot size-4" data-size="20"></div>
             </div>
 
             <div class="divider"></div>
@@ -498,25 +461,10 @@
                 <div class="opacity-dot" data-opacity="0.75" style="opacity: 0.75;"></div>
                 <div class="opacity-dot active" data-opacity="1" style="opacity: 1;"></div>
             </div>
-
-            <div class="divider"></div>
-
-            <div class="shape-group">
-                <button class="shape-btn" id="roundShape" title="Rond">
-                    <svg viewBox="0 0 24 24" fill="currentColor">
-                        <circle cx="12" cy="12" r="6"/>
-                    </svg>
-                </button>
-                <button class="shape-btn active" id="squareShape" title="Carré">
-                    <svg viewBox="0 0 24 24" fill="currentColor">
-                        <rect x="6" y="6" width="12" height="12"/>
-                    </svg>
-                </button>
-            </div>
         </div>
 
         <div class="canvas-area">
-            <canvas id="canvas" width="200" height="200"></canvas>
+            <canvas id="canvas" width="400" height="400"></canvas>
         </div>
 
         <div class="preview-section">
@@ -541,20 +489,44 @@
         const preview = document.getElementById('preview');
         const toast = document.getElementById('toast');
         
+        // Configuration haute résolution
+        const DISPLAY_SIZE = 200; // Taille affichée
+        const EXPORT_SIZE = 200;  // Taille d'export
+        const INTERNAL_SIZE = 400; // Résolution interne (plus de détails)
+        const SCALE = INTERNAL_SIZE / DISPLAY_SIZE;
+        
+        // Configurer le canvas en haute résolution
+        canvas.width = INTERNAL_SIZE;
+        canvas.height = INTERNAL_SIZE;
+        canvas.style.width = DISPLAY_SIZE + 'px';
+        canvas.style.height = DISPLAY_SIZE + 'px';
+        
+        // Style de trait lissé
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.imageSmoothingEnabled = true;
+        
         // Canvas temporaire pour le trait en cours (opacité propre)
         const tempCanvas = document.createElement('canvas');
-        tempCanvas.width = canvas.width;
-        tempCanvas.height = canvas.height;
+        tempCanvas.width = INTERNAL_SIZE;
+        tempCanvas.height = INTERNAL_SIZE;
         const tempCtx = tempCanvas.getContext('2d');
-        tempCtx.imageSmoothingEnabled = false;
+        tempCtx.lineCap = 'round';
+        tempCtx.lineJoin = 'round';
+        
+        // Canvas pour l'export en 200x200
+        const exportCanvas = document.createElement('canvas');
+        exportCanvas.width = EXPORT_SIZE;
+        exportCanvas.height = EXPORT_SIZE;
+        const exportCtx = exportCanvas.getContext('2d');
 
         let isDrawing = false;
         let lastX = 0;
         let lastY = 0;
+        let points = []; // Points pour le lissage Bézier
         let currentColor = '#000000';
         let currentSize = 3;
         let currentOpacity = 1;
-        let brushShape = 'square';
         let isEraser = false;
         let isFillMode = false;
         let isPipetteMode = false;
@@ -778,6 +750,7 @@
             }
 
             isDrawing = true;
+            points = [{x, y}];
             [lastX, lastY] = [x, y];
             
             // Sauvegarder l'état actuel du canvas
@@ -785,6 +758,20 @@
             
             // Effacer le canvas temporaire
             tempCtx.clearRect(0, 0, tempCanvas.width, tempCanvas.height);
+            
+            // Dessiner un point au début (pour les clics simples)
+            const color = isEraser ? '#ffffff' : currentColor;
+            const size = (isEraser ? currentSize * 2 : currentSize) * SCALE;
+            tempCtx.fillStyle = color;
+            tempCtx.beginPath();
+            tempCtx.arc(x, y, size / 2, 0, Math.PI * 2);
+            tempCtx.fill();
+            
+            // Afficher
+            ctx.putImageData(canvasSnapshot, 0, 0);
+            ctx.globalAlpha = currentOpacity;
+            ctx.drawImage(tempCanvas, 0, 0);
+            ctx.globalAlpha = 1;
         }
         
         // Pipette - récupérer la couleur d'un pixel
@@ -804,12 +791,13 @@
             e.preventDefault();
 
             const [x, y] = getPos(e);
+            points.push({x, y});
 
             const color = isEraser ? '#ffffff' : currentColor;
-            const size = isEraser ? currentSize * 2 : currentSize;
+            const size = (isEraser ? currentSize * 2 : currentSize) * SCALE;
 
-            // Dessiner sur le canvas temporaire (opacité 100%)
-            drawPixelLine(tempCtx, lastX, lastY, x, y, color, size);
+            // Dessiner avec lissage sur le canvas temporaire
+            drawSmoothLine(tempCtx, points, color, size);
             
             // Restaurer le snapshot puis composer avec le trait temporaire
             ctx.putImageData(canvasSnapshot, 0, 0);
@@ -819,53 +807,37 @@
 
             [lastX, lastY] = [x, y];
         }
-
-        function drawPixelLine(context, x0, y0, x1, y1, color, size) {
-            x0 = Math.floor(x0);
-            y0 = Math.floor(y0);
-            x1 = Math.floor(x1);
-            y1 = Math.floor(y1);
-
-            const dx = Math.abs(x1 - x0);
-            const dy = Math.abs(y1 - y0);
-            const sx = x0 < x1 ? 1 : -1;
-            const sy = y0 < y1 ? 1 : -1;
-            let err = dx - dy;
-
-            context.fillStyle = color;
-
-            while (true) {
-                if (brushShape === 'round') {
-                    // Cercle pixelisé (sans anti-aliasing)
-                    drawPixelCircle(context, x0, y0, Math.floor(size / 2));
-                } else {
-                    const px = x0 - Math.floor(size / 2);
-                    const py = y0 - Math.floor(size / 2);
-                    context.fillRect(px, py, size, size);
-                }
-
-                if (x0 === x1 && y0 === y1) break;
-                const e2 = 2 * err;
-                if (e2 > -dy) { err -= dy; x0 += sx; }
-                if (e2 < dx) { err += dx; y0 += sy; }
-            }
-        }
         
-        // Cercle pixelisé avec algorithme de Bresenham (pas d'anti-aliasing)
-        function drawPixelCircle(context, cx, cy, radius) {
-            if (radius <= 0) {
-                context.fillRect(cx, cy, 1, 1);
-                return;
+        // Dessin lissé avec courbes de Bézier quadratiques
+        function drawSmoothLine(context, pts, color, size) {
+            if (pts.length < 2) return;
+            
+            context.clearRect(0, 0, tempCanvas.width, tempCanvas.height);
+            context.strokeStyle = color;
+            context.lineWidth = size;
+            context.lineCap = 'round';
+            context.lineJoin = 'round';
+            
+            context.beginPath();
+            context.moveTo(pts[0].x, pts[0].y);
+            
+            if (pts.length === 2) {
+                // Juste 2 points : ligne droite
+                context.lineTo(pts[1].x, pts[1].y);
+            } else {
+                // Lissage avec courbes quadratiques
+                for (let i = 1; i < pts.length - 1; i++) {
+                    const midX = (pts[i].x + pts[i + 1].x) / 2;
+                    const midY = (pts[i].y + pts[i + 1].y) / 2;
+                    context.quadraticCurveTo(pts[i].x, pts[i].y, midX, midY);
+                }
+                // Dernière ligne vers le dernier point
+                const last = pts[pts.length - 1];
+                const secondLast = pts[pts.length - 2];
+                context.quadraticCurveTo(secondLast.x, secondLast.y, last.x, last.y);
             }
             
-            // Remplir un cercle pixel par pixel
-            for (let y = -radius; y <= radius; y++) {
-                for (let x = -radius; x <= radius; x++) {
-                    if (x * x + y * y <= radius * radius) {
-                        context.fillRect(cx + x, cy + y, 1, 1);
-                    }
-                }
-            }
+            context.stroke();
         }
 
         function stopDrawing() {
@@ -918,19 +890,6 @@
                 dot.classList.add('active');
                 currentOpacity = parseFloat(dot.dataset.opacity);
             });
-        });
-
-        // Shape buttons
-        document.getElementById('squareShape').addEventListener('click', () => {
-            brushShape = 'square';
-            document.getElementById('squareShape').classList.add('active');
-            document.getElementById('roundShape').classList.remove('active');
-        });
-
-        document.getElementById('roundShape').addEventListener('click', () => {
-            brushShape = 'round';
-            document.getElementById('roundShape').classList.add('active');
-            document.getElementById('squareShape').classList.remove('active');
         });
 
         // Pencil button
@@ -1109,30 +1068,52 @@
             e.target.value = '';
         });
 
+        // Fonction pour obtenir le canvas exporté en 200x200
+        function getExportCanvas() {
+            exportCtx.imageSmoothingEnabled = true;
+            exportCtx.imageSmoothingQuality = 'high';
+            exportCtx.drawImage(canvas, 0, 0, INTERNAL_SIZE, INTERNAL_SIZE, 0, 0, EXPORT_SIZE, EXPORT_SIZE);
+            return exportCanvas;
+        }
+
         // Update preview
         function updatePreview() {
-            const dataUrl = canvas.toDataURL('image/png');
-            preview.src = dataUrl;
+            const exported = getExportCanvas();
+            preview.src = exported.toDataURL('image/png');
         }
 
         // Download
         document.getElementById('downloadBtn').addEventListener('click', () => {
+            const exported = getExportCanvas();
             const link = document.createElement('a');
             link.download = 'doodle.png';
-            link.href = canvas.toDataURL('image/png');
+            link.href = exported.toDataURL('image/png');
             link.click();
             showToast('Téléchargé ! 📥');
         });
 
         // Share (Web Share API pour mobile)
         const shareBtn = document.getElementById('shareBtn');
-        if (navigator.canShare && navigator.canShare({ files: [new File([], 'test.png', { type: 'image/png' })] })) {
-            shareBtn.style.display = 'block';
+        
+        // Vérifier si le partage de fichiers est supporté
+        async function checkShareSupport() {
+            try {
+                if (navigator.canShare) {
+                    const testFile = new File(['test'], 'test.png', { type: 'image/png' });
+                    if (navigator.canShare({ files: [testFile] })) {
+                        shareBtn.style.display = 'block';
+                    }
+                }
+            } catch (e) {
+                // Partage non supporté
+            }
         }
+        checkShareSupport();
         
         shareBtn.addEventListener('click', async () => {
             try {
-                const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+                const exported = getExportCanvas();
+                const blob = await new Promise(resolve => exported.toBlob(resolve, 'image/png'));
                 const file = new File([blob], 'doodle.png', { type: 'image/png' });
                 
                 await navigator.share({
@@ -1149,7 +1130,8 @@
         // Copy
         document.getElementById('copyBtn').addEventListener('click', async () => {
             try {
-                const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+                const exported = getExportCanvas();
+                const blob = await new Promise(resolve => exported.toBlob(resolve, 'image/png'));
                 await navigator.clipboard.write([
                     new ClipboardItem({ 'image/png': blob })
                 ]);
@@ -1232,7 +1214,10 @@
             deferredPrompt = null;
         });
 
-        // Init preview
+        // Init - fond blanc
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        saveState();
         updatePreview();
     </script>
 </body>
