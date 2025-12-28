@@ -239,6 +239,41 @@
             outline-offset: 2px;
         }
 
+        .shape-group {
+            display: flex;
+            align-items: center;
+            gap: 2px;
+            border: 1px solid #555;
+            border-radius: 4px;
+            padding: 2px;
+        }
+
+        .shape-btn {
+            width: 24px;
+            height: 24px;
+            border: none;
+            background: transparent;
+            color: #fff;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 2px;
+        }
+
+        .shape-btn:hover {
+            background: #505050;
+        }
+
+        .shape-btn.active {
+            background: #505050;
+        }
+
+        .shape-btn svg {
+            width: 12px;
+            height: 12px;
+        }
+
         .canvas-area {
             display: flex;
             justify-content: center;
@@ -461,6 +496,21 @@
                 <div class="opacity-dot" data-opacity="0.75" style="opacity: 0.75;"></div>
                 <div class="opacity-dot active" data-opacity="1" style="opacity: 1;"></div>
             </div>
+
+            <div class="divider"></div>
+
+            <div class="shape-group">
+                <button class="shape-btn active" id="roundShape" title="Rond">
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                        <circle cx="12" cy="12" r="6"/>
+                    </svg>
+                </button>
+                <button class="shape-btn" id="squareShape" title="Carré">
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                        <rect x="6" y="6" width="12" height="12"/>
+                    </svg>
+                </button>
+            </div>
         </div>
 
         <div class="canvas-area">
@@ -492,7 +542,7 @@
         // Configuration haute résolution
         const DISPLAY_SIZE = 200; // Taille affichée
         const EXPORT_SIZE = 200;  // Taille d'export
-        const INTERNAL_SIZE = 400; // Résolution interne (plus de détails)
+        const INTERNAL_SIZE = 300; // Résolution interne (juste milieu)
         const SCALE = INTERNAL_SIZE / DISPLAY_SIZE;
         
         // Configurer le canvas en haute résolution
@@ -527,6 +577,7 @@
         let currentColor = '#000000';
         let currentSize = 3;
         let currentOpacity = 1;
+        let brushShape = 'round'; // 'round' ou 'square'
         let isEraser = false;
         let isFillMode = false;
         let isPipetteMode = false;
@@ -763,9 +814,14 @@
             const color = isEraser ? '#ffffff' : currentColor;
             const size = (isEraser ? currentSize * 2 : currentSize) * SCALE;
             tempCtx.fillStyle = color;
-            tempCtx.beginPath();
-            tempCtx.arc(x, y, size / 2, 0, Math.PI * 2);
-            tempCtx.fill();
+            
+            if (brushShape === 'square') {
+                tempCtx.fillRect(x - size/2, y - size/2, size, size);
+            } else {
+                tempCtx.beginPath();
+                tempCtx.arc(x, y, size / 2, 0, Math.PI * 2);
+                tempCtx.fill();
+            }
             
             // Afficher
             ctx.putImageData(canvasSnapshot, 0, 0);
@@ -815,8 +871,15 @@
             context.clearRect(0, 0, tempCanvas.width, tempCanvas.height);
             context.strokeStyle = color;
             context.lineWidth = size;
-            context.lineCap = 'round';
-            context.lineJoin = 'round';
+            
+            // Forme du trait
+            if (brushShape === 'square') {
+                context.lineCap = 'square';
+                context.lineJoin = 'miter';
+            } else {
+                context.lineCap = 'round';
+                context.lineJoin = 'round';
+            }
             
             context.beginPath();
             context.moveTo(pts[0].x, pts[0].y);
@@ -890,6 +953,19 @@
                 dot.classList.add('active');
                 currentOpacity = parseFloat(dot.dataset.opacity);
             });
+        });
+
+        // Shape buttons
+        document.getElementById('roundShape').addEventListener('click', () => {
+            brushShape = 'round';
+            document.getElementById('roundShape').classList.add('active');
+            document.getElementById('squareShape').classList.remove('active');
+        });
+
+        document.getElementById('squareShape').addEventListener('click', () => {
+            brushShape = 'square';
+            document.getElementById('squareShape').classList.add('active');
+            document.getElementById('roundShape').classList.remove('active');
         });
 
         // Pencil button
