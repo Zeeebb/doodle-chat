@@ -539,10 +539,10 @@
         const preview = document.getElementById('preview');
         const toast = document.getElementById('toast');
         
-        // Configuration haute résolution
+        // Configuration résolution
         const DISPLAY_SIZE = 200; // Taille affichée
         const EXPORT_SIZE = 200;  // Taille d'export
-        const INTERNAL_SIZE = 250; // Résolution interne (style Hangouts)
+        const INTERNAL_SIZE = 200; // Résolution interne (1:1 style Hangouts)
         const SCALE = INTERNAL_SIZE / DISPLAY_SIZE;
         
         // Configurer le canvas en haute résolution
@@ -864,7 +864,7 @@
             [lastX, lastY] = [x, y];
         }
         
-        // Dessin lissé avec courbes de Bézier quadratiques
+        // Dessin avec lissage Bézier
         function drawSmoothLine(context, pts, color, size) {
             if (pts.length < 2) return;
             
@@ -885,7 +885,6 @@
             context.moveTo(pts[0].x, pts[0].y);
             
             if (pts.length === 2) {
-                // Juste 2 points : ligne droite
                 context.lineTo(pts[1].x, pts[1].y);
             } else {
                 // Lissage avec courbes quadratiques
@@ -894,7 +893,6 @@
                     const midY = (pts[i].y + pts[i + 1].y) / 2;
                     context.quadraticCurveTo(pts[i].x, pts[i].y, midX, midY);
                 }
-                // Dernière ligne vers le dernier point
                 const last = pts[pts.length - 1];
                 const secondLast = pts[pts.length - 2];
                 context.quadraticCurveTo(secondLast.x, secondLast.y, last.x, last.y);
