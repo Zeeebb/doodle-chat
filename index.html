@@ -869,36 +869,52 @@
             if (pts.length < 2) return;
             
             context.clearRect(0, 0, tempCanvas.width, tempCanvas.height);
-            context.strokeStyle = color;
-            context.lineWidth = size;
             
-            // Forme du trait
             if (brushShape === 'square') {
-                context.lineCap = 'square';
-                context.lineJoin = 'miter';
+                // Mode carré : dessiner des carrés le long du chemin
+                context.fillStyle = color;
+                
+                for (let i = 0; i < pts.length - 1; i++) {
+                    const x0 = pts[i].x;
+                    const y0 = pts[i].y;
+                    const x1 = pts[i + 1].x;
+                    const y1 = pts[i + 1].y;
+                    
+                    const dist = Math.sqrt((x1 - x0) ** 2 + (y1 - y0) ** 2);
+                    const steps = Math.max(1, Math.floor(dist));
+                    
+                    for (let j = 0; j <= steps; j++) {
+                        const t = j / steps;
+                        const x = x0 + (x1 - x0) * t;
+                        const y = y0 + (y1 - y0) * t;
+                        context.fillRect(x - size/2, y - size/2, size, size);
+                    }
+                }
             } else {
+                // Mode rond : trait lissé avec Bézier
+                context.strokeStyle = color;
+                context.lineWidth = size;
                 context.lineCap = 'round';
                 context.lineJoin = 'round';
-            }
-            
-            context.beginPath();
-            context.moveTo(pts[0].x, pts[0].y);
-            
-            if (pts.length === 2) {
-                context.lineTo(pts[1].x, pts[1].y);
-            } else {
-                // Lissage avec courbes quadratiques
-                for (let i = 1; i < pts.length - 1; i++) {
-                    const midX = (pts[i].x + pts[i + 1].x) / 2;
-                    const midY = (pts[i].y + pts[i + 1].y) / 2;
-                    context.quadraticCurveTo(pts[i].x, pts[i].y, midX, midY);
+                
+                context.beginPath();
+                context.moveTo(pts[0].x, pts[0].y);
+                
+                if (pts.length === 2) {
+                    context.lineTo(pts[1].x, pts[1].y);
+                } else {
+                    for (let i = 1; i < pts.length - 1; i++) {
+                        const midX = (pts[i].x + pts[i + 1].x) / 2;
+                        const midY = (pts[i].y + pts[i + 1].y) / 2;
+                        context.quadraticCurveTo(pts[i].x, pts[i].y, midX, midY);
+                    }
+                    const last = pts[pts.length - 1];
+                    const secondLast = pts[pts.length - 2];
+                    context.quadraticCurveTo(secondLast.x, secondLast.y, last.x, last.y);
                 }
-                const last = pts[pts.length - 1];
-                const secondLast = pts[pts.length - 2];
-                context.quadraticCurveTo(secondLast.x, secondLast.y, last.x, last.y);
+                
+                context.stroke();
             }
-            
-            context.stroke();
         }
 
         function stopDrawing() {
@@ -930,10 +946,17 @@
         canvas.addEventListener('mousedown', startDrawing);
         canvas.addEventListener('mousemove', draw);
         canvas.addEventListener('mouseup', stopDrawing);
-        canvas.addEventListener('mouseout', stopDrawing);
         canvas.addEventListener('touchstart', startDrawing);
         canvas.addEventListener('touchmove', draw);
         canvas.addEventListener('touchend', stopDrawing);
+        
+        // Continuer le dessin même en dehors du canvas
+        document.addEventListener('mousemove', (e) => {
+            if (isDrawing) {
+                draw(e);
+            }
+        });
+        document.addEventListener('mouseup', stopDrawing);
 
         // Size dots
         document.querySelectorAll('.size-dot').forEach(dot => {
